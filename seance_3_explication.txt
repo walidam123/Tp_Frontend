@@ -1,0 +1,68 @@
+React Router (Navigation)
+
+Deux hooks importants :
+
+useNavigate
+
+Permet de changer de page
+
+navigate('/dashboard')
+
+ou
+
+navigate(from, { replace: true })
+
+replace: true évite de garder la page login dans l’historique.
+
+useLocation
+
+Permet de récupérer les informations de la page actuelle.
+
+const location = useLocation();
+
+Exemple utile :
+
+const from = location.state?.from || '/dashboard';
+
+Si un utilisateur voulait accéder à :
+
+/tasks
+
+mais qu'il n'est pas connecté :
+
+➡️ on l'envoie vers login
+➡️ après connexion il retourne vers /tasks.
+
+4️⃣ Context API (useAuth)
+const { state, dispatch } = useAuth();
+
+C'est un context React qui permet de partager l'état global.
+
+Exemple de state :
+
+state = {
+user: {},
+loading: false,
+error: null
+}
+dispatch
+
+Permet de modifier l'état global.
+
+Exemple :
+
+dispatch({ type: 'LOGIN_START' })
+
+Dans le reducer :
+
+LOGIN_START
+LOGIN_SUCCESS
+LOGIN_FAILURE
+5️⃣ Appel API avec Axios
+const { data: users } = await api.get(`/users?email=${email}`);
+
+Cela fait une requête :
+
+GET /users?email=test@mail.com
+
+avec json-server.

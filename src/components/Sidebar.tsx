@@ -1,31 +1,62 @@
-import styles from "./Sidebar.module.css";
+// src/components/Sidebar.tsx
+import { NavLink } from 'react-router-dom';
+import styles from './Sidebar.module.css';
 
 interface Project {
-  id: string;
-  name: string;
-  color: string;
+    id: string;
+    name: string;
+    color: string;
 }
 
 interface SidebarProps {
-  projects: Project[];
-  isOpen: boolean;
+    projects: Project[];
+    isOpen: boolean;
+    onRename: (project: Project) => void;
+    onDelete: (id: string) => void;
 }
 
-export default function Sidebar({ projects, isOpen }: SidebarProps) {
-  
+export default function Sidebar({ projects, isOpen, onRename, onDelete }: SidebarProps) {
+    if (!isOpen) return null;
 
-  return (
-    <aside className={`${styles.sidebar} ${isOpen ? styles.open : styles.closed}`}>
-      <h2 className={styles.title}>Mes Projets</h2>
-
-      <ul className={styles.list}>
-        {projects.map(p => 
-        ( <li key={p.id} className={styles.item}>
-             <span className={styles.dot} style={{ background: p.color }} />
-              {p.name} 
-              </li>
-               ))}
+    return (
+        <aside className={styles.sidebar}>
+            <nav className={styles.nav}>
+                <h3 className={styles.title}>Mes Projets</h3>
+                <ul className={styles.list}>
+                    {projects.map(project => (
+                        <li key={project.id} className={styles.listItem}>
+                            <NavLink
+                                to={`/projects/${project.id}`}
+                                className={({ isActive }) => 
+                                    `${styles.item} ${isActive ? styles.active : ''}`
+                                }
+                            >
+                                <span 
+                                    className={styles.dot} 
+                                    style={{ backgroundColor: project.color }} 
+                                />
+                                {project.name}
+                            </NavLink>
+                            <div className={styles.actions}>
+                                <button 
+                                    onClick={() => onRename(project)}
+                                    className={styles.renameBtn}
+                                    title="Renommer"
+                                >
+                                    ✏️
+                                </button>
+                                <button 
+                                    onClick={() => onDelete(project.id)}
+                                    className={styles.deleteBtn}
+                                    title="Supprimer"
+                                >
+                                    🗑️
+                                </button>
+                            </div>
+                        </li>
+                    ))}
                 </ul>
-                 </aside> 
-        ); 
-        }
+            </nav>
+        </aside>
+    );
+}
