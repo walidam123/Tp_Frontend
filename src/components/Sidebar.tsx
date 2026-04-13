@@ -16,6 +16,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ projects, isOpen, onRename, onDelete }: SidebarProps) {
+    console.log('Sidebar re-render');
     if (!isOpen) return null;
 
     return (

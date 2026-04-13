@@ -2,10 +2,12 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  token?: string; // Ajouté pour supporter le token dans l'objet user
 }
 
 export interface AuthState {
   user: User | null;
+  token: string | null; // NOUVEAU 
   loading: boolean;
   error: string | null;
 }
@@ -18,6 +20,7 @@ export type AuthAction =
 
 export const initialState: AuthState = {
   user: null,
+  token: null, // NOUVEAU 
   loading: false,
   error: null,
 };
@@ -26,12 +29,11 @@ export function authReducer(
   state: AuthState,
   action: AuthAction
 ): AuthState {
-
   switch (action.type) {
-
     case 'LOGIN_START':
       return {
         user: null,
+        token: null, // Reset du token au début
         loading: true,
         error: null
       };
@@ -39,6 +41,7 @@ export function authReducer(
     case 'LOGIN_SUCCESS':
       return {
         user: action.payload,
+        token: action.payload.token || null, // NOUVEAU 
         loading: false,
         error: null
       };
@@ -46,6 +49,7 @@ export function authReducer(
     case 'LOGIN_FAILURE':
       return {
         user: null,
+        token: null, // Reset du token en cas d'échec
         loading: false,
         error: action.payload
       };
@@ -56,5 +60,4 @@ export function authReducer(
     default:
       return state;
   }
-
 }

@@ -1,146 +1,46 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../features/auth/AuthContext';
+import { useSelector, useDispatch } from 'react-redux';
+import { logout } from '../features/auth/authSlice';
+import type { RootState } from '../store';
+
 import api from '../api/axios';
+import { useProjects } from "../hooks/useProjects";  // Import du hook
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import MainContent from '../components/MainContent';
 import ProjectForm from '../components/ProjectForm';
 import styles from './Dashboard.module.css';
-import axios from 'axios';
-
-interface Project {
-    id: string;
-    name: string;
-    color: string;
-}
-
-interface Column {
-    id: string;
-    title: string;
-    tasks: string[];
-}
 
 export default function Dashboard() {
-
-    const { state: authState, dispatch } = useAuth();
+    const dispatch = useDispatch();
+    const { user } = useSelector((state: RootState) => state.auth);
+    
+    // Utilisation du Custom Hook
+    const { projects, loading, error, saving, addProject, renameProject, deleteProject, setError } = useProjects();
 
     const [sidebarOpen, setSidebarOpen] = useState(true);
-    const [projects, setProjects] = useState<Project[]>([]);
-    const [columns, setColumns] = useState<Column[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [columns, setColumns] = useState([]);
     const [showForm, setShowForm] = useState(false);
-    
-    // États pour la gestion d'erreurs et loading
-    const [error, setError] = useState<string | null>(null);
-    const [saving, setSaving] = useState(false);
 
-    // GET — charger les données au montage
+    // On garde uniquement le fetch des colonnes ici (ou on pourrait faire un useColumns)
     useEffect(() => {
-        async function fetchData() {
-            try {
-                const [projRes, colRes] = await Promise.all([
-                    api.get('/projects'),
-                    api.get('/columns'),
-                ]);
-
-                setProjects(projRes.data);
-                setColumns(colRes.data);
-            } catch (e) {
-                console.error(e);
-                if (axios.isAxiosError(e)) {
-                    setError(`Erreur de chargement: ${e.response?.status || 'réseau'}`);
-                } else {
-                    setError('Erreur inconnue lors du chargement');
-                }
-            } finally {
-                setLoading(false);
-            }
-        }
-
-        fetchData();
+        api.get('/columns').then(res => setColumns(res.data)).catch(() => {});
     }, []);
 
-    // POST — ajouter un projet avec gestion d'erreurs
-    async function addProject(name: string, color: string) {
-        setSaving(true);
-        setError(null);
-        
-        try {
-            const { data } = await api.post('/projects', { name, color });
-            setProjects(prev => [...prev, data]);
-            setShowForm(false);
-        } catch (err) {
-            if (axios.isAxiosError(err)) {
-                setError(err.response?.data?.message || `Erreur ${err.response?.status || 'réseau'}`);
-            } else {
-                setError('Erreur inconnue');
-            }
-        } finally {
-            setSaving(false);
-        }
-    }
+    const handleAddProject = async (name: string, color: string) => {
+        const success = await addProject(name, color);
+        if (success) setShowForm(false);
+    };
 
-    // PUT — renommer un projet avec gestion d'erreurs
-    async function renameProject(project: Project) {
-        const newName = prompt('Nouveau nom du projet :', project.name);
-        
-        if (!newName || newName === project.name) return;
-        
-        setSaving(true);
-        setError(null);
-        
-        try {
-            const { data } = await api.put(`/projects/${project.id}`, {
-                ...project,
-                name: newName
-            });
-            
-            setProjects(prev => prev.map(p => 
-                p.id === project.id ? data : p
-            ));
-        } catch (err) {
-            if (axios.isAxiosError(err)) {
-                setError(err.response?.data?.message || `Erreur ${err.response?.status || 'réseau'}`);
-            } else {
-                setError('Erreur inconnue');
-            }
-        } finally {
-            setSaving(false);
-        }
-    }
-
-    // DELETE — supprimer un projet avec gestion d'erreurs
-    async function deleteProject(id: string) {
-        if (!confirm('Êtes-vous sûr de vouloir supprimer ce projet ?')) return;
-        
-        setSaving(true);
-        setError(null);
-        
-        try {
-            await api.delete(`/projects/${id}`);
-            setProjects(prev => prev.filter(p => p.id !== id));
-        } catch (err) {
-            if (axios.isAxiosError(err)) {
-                setError(err.response?.data?.message || `Erreur ${err.response?.status || 'réseau'}`);
-            } else {
-                setError('Erreur inconnue');
-            }
-        } finally {
-            setSaving(false);
-        }
-    }
-
-    if (loading) {
-        return <div className={styles.loading}>Chargement...</div>;
-    }
+    if (loading) return <div className={styles.loading}>Chargement...</div>;
 
     return (
         <div className={styles.layout}>
             <Header
                 title="TaskFlow"
                 onMenuClick={() => setSidebarOpen(p => !p)}
-                userName={authState.user?.name}
-                onLogout={() => dispatch({ type: 'LOGOUT' })}
+                userName={user?.name}
+                onLogout={() => dispatch(logout())}
             />
 
             <div className={styles.body}>
@@ -153,15 +53,10 @@ export default function Dashboard() {
 
                 <div className={styles.content}>
                     <div className={styles.toolbar}>
-                        {/* Affichage de l'erreur si elle existe */}
-                        {error && (
-                            <div className={styles.error}>
-                                {error}
-                            </div>
-                        )}
+                        {error && <div className={styles.error}>{error}</div>}
 
                         {!showForm ? (
-                            <button
+                            <button 
                                 className={`${styles.addBtn} ${saving ? styles.disabled : ''}`}
                                 onClick={() => setShowForm(true)}
                                 disabled={saving}
@@ -171,18 +66,12 @@ export default function Dashboard() {
                         ) : (
                             <ProjectForm
                                 submitLabel="Créer"
-                                onSubmit={addProject}
-                                onCancel={() => {
-                                    setShowForm(false);
-                                    setError(null);
-                                }}
+                                onSubmit={handleAddProject}
+                                onCancel={() => { setShowForm(false); setError(null); }}
                             />
                         )}
                     </div>
-
-                    {/* CORRECTION: Retirer la prop projects qui n'existe pas */}
                     <MainContent columns={columns} />
-                    
                 </div>
             </div>
         </div>
